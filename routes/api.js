@@ -2,8 +2,7 @@ var express = require('express');
 var router = express.Router();
 
 const Xemays = require('../model/xemays');
-const { route } = require('.');
-
+const upload = require('../config/common/upload');
 // get list
 router.get('/list', async (req, res) => {
     try {
@@ -59,16 +58,20 @@ router.get('/xemaybyid/:id', async (req, res) => {
     }
 })
 
-
-router.post('/add', async (req, res) => {
+// add
+router.post('/add', upload.single('image'), async (req, res) => {
     try {
         const data = req.body;
+        const { file } = req;
+        const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${file.filename}`;
+        //url hình ảnh sẽ được lưu dưới dạng: http://localhost:3000/upload/filename
+
         const xemay = new Xemays({
             ten_xe_ph42693: data.ten_xe_ph42693,
             mau_sac_ph42693: data.mau_sac_ph42693,
             gia_ban_ph42693: data.gia_ban_ph42693,
             mo_ta_ph42693: data.mo_ta_ph42693,
-            hinh_anh_ph42693: data.hinh_anh_ph42693
+            hinh_anh_ph42693: imageUrl
         })
 
         const result = await xemay.save();
@@ -96,7 +99,7 @@ router.post('/add', async (req, res) => {
     }
 })
 
-
+// delete
 router.delete('/delete/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -126,11 +129,15 @@ router.delete('/delete/:id', async (req, res) => {
 })
 
 // update 
-router.put('/update/:id', async (req, res) => {
+router.put('/update/:id', upload.single('image'), async (req, res) => {
     try {
         const { id } = req.params;
         const data = req.body;
 
+        if (req.file) {
+            const imageUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+            data.hinh_anh_ph42693 = imageUrl;
+        }
         const result = await Xemays.findByIdAndUpdate(id, data, { new: true });
         if (result) {
             res.json({
@@ -186,24 +193,25 @@ router.get('/search', async (req, res) => {
 // sort by price
 router.get('/sort', async (req, res) => {
     const { type } = req.query;
-        let result = null;
-        if (type == 1) {
-            result = await Xemays.find().sort({ gia_ban_ph42693: 1 });
-        } else {
-            result = await Xemays.find().sort({ gia_ban_ph42693: -1 });
-        }
-        if (result) {
-            res.json({
-                status: 200,
-                masage: "sort by price xe máy ok",
-                data: result
-            })
-        } else {
-            res.json({
-                status: 400,
-                masage: "sort by price xe máy fail",
-                data: []
-            })
-        }
+    let result = null;
+    if (type == 1) {
+        result = await Xemays.find().sort({ gia_ban_ph42693: 1 });
+    } else {
+        result = await Xemays.find().sort({ gia_ban_ph42693: -1 });
+    }
+    if (result) {
+        res.json({
+            status: 200,
+            masage: "sort by price xe máy ok",
+            data: result
+        })
+    } else {
+        res.json({
+            status: 400,
+            masage: "sort by price xe máy fail",
+            data: []
+        })
+    }
 })
+
 module.exports = router;
